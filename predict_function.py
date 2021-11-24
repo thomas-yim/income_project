@@ -91,8 +91,38 @@ def predict(path_to_image):
     print(tensorImage.shape)
     output = cnn_model(tensorImage.to(device=device))
     predicted = output.data
-    print(predicted.data)
+    return predicted.data
 
-predict("imagery/14_2798_6543.jpg")
+print(predict("imagery/14_2799_6543.jpg"))
 
-torch.save(cnn_model, "model.pt")
+model = torch.load("chocolate_croissants_model.pth");
+
+model.eval()
+
+class TestDataset(torch.utils.data.Dataset):
+  def __init__(self, data):
+    self.images = []
+    self.labels = []
+    self.transform = transforms.Compose([transforms.ToTensor()])
+    
+    for key in tqdm(data):
+      image = Image.open("imagery/" + key).convert("RGB")
+      
+      self.images.append(self.transform(image))
+      self.labels.append(float(data[key]))
+
+
+  def __len__(self):
+    return len(self.images)
+  def __getitem__(self, idx):
+    return self.images[idx], self.labels[idx]
+
+testset = torch.load("testset.pt")
+
+with torch.no_grad():
+  device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+  for image, label in testset:
+    image = torch.unsqueeze(image, dim=0)
+    pred = model(image.to(device=device))
+    print(pred.data - label)
+
